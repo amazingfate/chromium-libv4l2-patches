@@ -1,0 +1,25 @@
+From f3ec5ce1e7404fc899f8c5537c04f10bc4e3737e Mon Sep 17 00:00:00 2001
+From: amazingfate <liujianfeng1994@gmail.com>
+Date: Tue, 17 Oct 2023 22:16:36 +0800
+Subject: [PATCH 4/4] media: gpu: v4l2: use common v4l2 device path
+
+---
+ media/gpu/v4l2/generic_v4l2_device.cc | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/media/gpu/v4l2/generic_v4l2_device.cc b/media/gpu/v4l2/generic_v4l2_device.cc
+index fe0e25195..bd6ac418e 100644
+--- a/media/gpu/v4l2/generic_v4l2_device.cc
++++ b/media/gpu/v4l2/generic_v4l2_device.cc
+@@ -421,7 +421,7 @@ bool GenericV4L2Device::PostSandboxInitialization() {
+ }
+ 
+ void GenericV4L2Device::EnumerateDevicesForType(Type type) {
+-  static const std::string kDecoderDevicePattern = "/dev/video-dec";
++  static const std::string kDecoderDevicePattern = "/dev/video";
+   static const std::string kEncoderDevicePattern = "/dev/video-enc";
+   static const std::string kImageProcessorDevicePattern = "/dev/image-proc";
+   static const std::string kJpegDecoderDevicePattern = "/dev/jpeg-dec";
+-- 
+2.34.1
+
