@@ -1,0 +1,28 @@
+From 84079a49811dbf087cfe3f5683e0f4a1744d2376 Mon Sep 17 00:00:00 2001
+From: amazingfate <liujianfeng1994@gmail.com>
+Date: Thu, 2 Nov 2023 16:44:58 +0800
+Subject: [PATCH 5/5] media: disable webgpu for linux
+
+---
+ media/gpu/chromeos/mailbox_video_frame_converter.cc | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/media/gpu/chromeos/mailbox_video_frame_converter.cc b/media/gpu/chromeos/mailbox_video_frame_converter.cc
+index d65fa03f0..95a7f9af1 100644
+--- a/media/gpu/chromeos/mailbox_video_frame_converter.cc
++++ b/media/gpu/chromeos/mailbox_video_frame_converter.cc
+@@ -546,9 +546,11 @@ bool MailboxVideoFrameConverter::GenerateSharedImageOnGPUThread(
+   // and, potentially, for overlays (Scanout).
+   uint32_t shared_image_usage =
+       gpu::SHARED_IMAGE_USAGE_DISPLAY_READ | gpu::SHARED_IMAGE_USAGE_SCANOUT;
++#if !BUILDFLAG(IS_LINUX)
+   if (video_frame->metadata().is_webgpu_compatible) {
+     shared_image_usage |= gpu::SHARED_IMAGE_USAGE_WEBGPU;
+   }
++#endif
+ 
+   gpu::SharedImageStub::SharedImageDestructionCallback destroy_shared_image_cb;
+   if (IsMultiPlaneFormatForHardwareVideoEnabled()) {
+-- 
+2.34.1
+

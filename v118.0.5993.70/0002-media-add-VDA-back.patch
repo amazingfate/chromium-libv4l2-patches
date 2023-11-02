@@ -1,0 +1,89 @@
+From 8325fb72b5e9166801801ba3a89826d8c8b9393d Mon Sep 17 00:00:00 2001
+From: amazingfate <liujianfeng1994@gmail.com>
+Date: Tue, 31 Oct 2023 15:32:11 +0800
+Subject: [PATCH 2/5] media: add VDA back
+
+---
+ media/mojo/services/gpu_mojo_media_client.cc  |  1 +
+ .../services/gpu_mojo_media_client_linux.cc   | 24 +++++++++++++++++++
+ 2 files changed, 25 insertions(+)
+
+diff --git a/media/mojo/services/gpu_mojo_media_client.cc b/media/mojo/services/gpu_mojo_media_client.cc
+index 7258b5b74..d453a9442 100644
+--- a/media/mojo/services/gpu_mojo_media_client.cc
++++ b/media/mojo/services/gpu_mojo_media_client.cc
+@@ -26,6 +26,7 @@
+ #include "media/gpu/gpu_video_decode_accelerator_factory.h"
+ #include "media/gpu/gpu_video_decode_accelerator_helpers.h"
+ #include "media/gpu/ipc/service/media_gpu_channel_manager.h"
++#include "media/gpu/ipc/service/vda_video_decoder.h"
+ #include "media/mojo/mojom/video_decoder.mojom.h"
+ #include "media/video/video_decode_accelerator.h"
+ #include "third_party/abseil-cpp/absl/types/optional.h"
+diff --git a/media/mojo/services/gpu_mojo_media_client_linux.cc b/media/mojo/services/gpu_mojo_media_client_linux.cc
+index 197e369f8..968f2b395 100644
+--- a/media/mojo/services/gpu_mojo_media_client_linux.cc
++++ b/media/mojo/services/gpu_mojo_media_client_linux.cc
+@@ -13,6 +13,7 @@
+ #include "media/gpu/chromeos/mailbox_video_frame_converter.h"
+ #include "media/gpu/chromeos/platform_video_frame_pool.h"
+ #include "media/gpu/chromeos/video_decoder_pipeline.h"
++#include "media/gpu/ipc/service/vda_video_decoder.h"
+ 
+ namespace media {
+ 
+@@ -28,7 +29,14 @@ VideoDecoderType GetPreferredLinuxDecoderImplementation() {
+     return VideoDecoderType::kOutOfProcess;
+   }
+ 
++#if BUILDFLAG(USE_VAAPI)
+   return VideoDecoderType::kVaapi;
++#elif BUILDFLAG(USE_V4L2_CODEC)
++  if (!base::FeatureList::IsEnabled(kUseChromeOSDirectVideoDecoder)) {
++	  return VideoDecoderType::kVda;
++  }
++  return VideoDecoderType::kV4L2;
++#endif
+ }
+ 
+ std::vector<Fourcc> GetPreferredRenderableFourccs(
+@@ -56,6 +64,13 @@ VideoDecoderType GetActualPlatformDecoderImplementation(
+       return VideoDecoderType::kUnknown;
+     case VideoDecoderType::kOutOfProcess:
+       return VideoDecoderType::kOutOfProcess;
++    case VideoDecoderType::kVda: {
++      return gpu_preferences.gr_context_type == gpu::GrContextType::kGL
++                 ? VideoDecoderType::kVda
++                 : VideoDecoderType::kUnknown;
++    }
++    case VideoDecoderType::kV4L2:
++      return VideoDecoderType::kV4L2;
+     case VideoDecoderType::kVaapi: {
+       // Allow VaapiVideoDecoder on GL.
+       if (gpu_preferences.gr_context_type == gpu::GrContextType::kGL) {
+@@ -146,6 +161,13 @@ std::unique_ptr<VideoDecoder> CreatePlatformVideoDecoder(
+           GetPreferredRenderableFourccs(traits.gpu_preferences),
+           traits.media_log->Clone(), /*oop_video_decoder=*/{});
+     }
++    case VideoDecoderType::kVda: {
++      return VdaVideoDecoder::Create(
++          traits.task_runner, traits.gpu_task_runner, traits.media_log->Clone(),
++          *traits.target_color_space, traits.gpu_preferences,
++          *traits.gpu_workarounds, traits.get_command_buffer_stub_cb,
++          VideoDecodeAccelerator::Config::OutputMode::ALLOCATE);
++    }
+     default:
+       return nullptr;
+   }
+@@ -181,6 +203,8 @@ GetPlatformSupportedVideoDecoderConfigs(
+   base::UmaHistogramEnumeration("Media.VaapiLinux.SupportedVideoDecoder",
+                                 decoder_implementation);
+   switch (decoder_implementation) {
++    case VideoDecoderType::kVda:
++      return std::move(get_vda_configs).Run();
+     case VideoDecoderType::kOutOfProcess:
+     case VideoDecoderType::kVaapi:
+     case VideoDecoderType::kV4L2:
+-- 
+2.34.1
+

@@ -1,0 +1,24 @@
+From 009d9e616566907fbcb377506ebbc09d7c5426b7 Mon Sep 17 00:00:00 2001
+From: amazingfate <liujianfeng1994@gmail.com>
+Date: Wed, 18 Oct 2023 19:02:59 +0800
+Subject: [PATCH 1/5] media: Support HEVC in V4L2 VDA
+
+---
+ media/gpu/v4l2/legacy/v4l2_video_decode_accelerator.cc | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/media/gpu/v4l2/legacy/v4l2_video_decode_accelerator.cc b/media/gpu/v4l2/legacy/v4l2_video_decode_accelerator.cc
+index 4d3c7c819..8a0dce672 100644
+--- a/media/gpu/v4l2/legacy/v4l2_video_decode_accelerator.cc
++++ b/media/gpu/v4l2/legacy/v4l2_video_decode_accelerator.cc
+@@ -89,6 +89,7 @@ bool IsVp9KSVCStream(uint32_t input_format_fourcc,
+ 
+ static const std::vector<uint32_t> kSupportedInputFourCCs = {
+     V4L2_PIX_FMT_H264,
++    V4L2_PIX_FMT_HEVC,
+     V4L2_PIX_FMT_VP8,
+     V4L2_PIX_FMT_VP9,
+ };
+-- 
+2.34.1
+

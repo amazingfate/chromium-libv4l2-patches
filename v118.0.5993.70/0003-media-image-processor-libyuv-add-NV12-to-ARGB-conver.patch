@@ -1,0 +1,67 @@
+From 92ec734281b2d849b4b5bd7b1ed33f45de2de392 Mon Sep 17 00:00:00 2001
+From: amazingfate <liujianfeng1994@gmail.com>
+Date: Tue, 31 Oct 2023 15:33:04 +0800
+Subject: [PATCH 3/5] media: image processor: libyuv: add NV12 to ARGB
+ convertion
+
+---
+ media/gpu/chromeos/image_processor_factory.cc        |  3 ++-
+ media/gpu/chromeos/libyuv_image_processor_backend.cc | 11 +++++++++++
+ 2 files changed, 13 insertions(+), 1 deletion(-)
+
+diff --git a/media/gpu/chromeos/image_processor_factory.cc b/media/gpu/chromeos/image_processor_factory.cc
+index fe1fb27f8..c295a7851 100644
+--- a/media/gpu/chromeos/image_processor_factory.cc
++++ b/media/gpu/chromeos/image_processor_factory.cc
+@@ -170,10 +170,11 @@ std::unique_ptr<ImageProcessor> CreateLibYUVImageProcessorWithInputCandidates(
+     scoped_refptr<base::SequencedTaskRunner> client_task_runner,
+     ImageProcessorFactory::PickFormatCB out_format_picker,
+     ImageProcessor::ErrorCB error_cb) {
+-  if (input_candidates.size() != 1)
++  if (input_candidates.size() == 0)
+     return nullptr;
+ 
+   if (input_candidates[0].fourcc != Fourcc(Fourcc::MM21) &&
++      input_candidates[0].fourcc != Fourcc(Fourcc::NV12) &&
+       input_candidates[0].fourcc != Fourcc(Fourcc::MT2T)) {
+     return nullptr;
+   }
+diff --git a/media/gpu/chromeos/libyuv_image_processor_backend.cc b/media/gpu/chromeos/libyuv_image_processor_backend.cc
+index 8ee9e2117..eb77370e2 100644
+--- a/media/gpu/chromeos/libyuv_image_processor_backend.cc
++++ b/media/gpu/chromeos/libyuv_image_processor_backend.cc
+@@ -47,6 +47,7 @@ static constexpr struct {
+ #define CONV(in, out, trans, result) \
+   {Fourcc::in, Fourcc::out, Transform::trans, SupportResult::result}
+     // Conversion.
++    CONV(NV12, AR24, kConversion, Supported),
+     CONV(NV12, NV12, kConversion, Supported),
+     CONV(YM16, NV12, kConversion, Supported),
+     CONV(YM16, YU12, kConversion, Supported),
+@@ -371,6 +372,9 @@ int LibYUVImageProcessorBackend::DoConversion(const VideoFrame* const input,
+           fr->GetWritableVisibleData(VideoFrame::kUVPlane)), \
+       fr->stride(VideoFrame::kUVPlane)
+ 
++#define ARGB_DATA(fr) \
++  fr->GetWritableVisibleData(VideoFrame::kARGBPlane), fr->stride(VideoFrame::kARGBPlane)
++
+ #define LIBYUV_FUNC(func, i, o)                      \
+   libyuv::func(i, o, output->visible_rect().width(), \
+                output->visible_rect().height())
+@@ -508,6 +512,13 @@ int LibYUVImageProcessorBackend::DoConversion(const VideoFrame* const input,
+     }
+   }
+ 
++  if (output->format() == PIXEL_FORMAT_ARGB) {
++    if (input_config_.fourcc == Fourcc(Fourcc::NV12)) {
++      return LIBYUV_FUNC(NV12ToARGB, Y_UV_DATA(input),
++                         ARGB_DATA(output));
++    }
++  }
++
+ #undef Y_U_V_DATA
+ #undef Y_V_U_DATA
+ #undef Y_UV_DATA
+-- 
+2.34.1
+
